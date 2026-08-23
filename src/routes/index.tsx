@@ -67,6 +67,7 @@ function Index() {
   const [resumeInfo, setResumeInfo] = useState<{ name: string; answered: number; seconds: number } | null>(null);
 
   const timerActive = phase === "test";
+  const lastQuestionRef = useRef(1);
   const elapsedRef = useRef(0);
   elapsedRef.current = elapsed;
   const tokenRef = useRef<string | null>(null);
@@ -96,9 +97,11 @@ function Index() {
           setParticipant({
             ...session.participant,
             duration_seconds: session.durationSeconds ?? 0,
-            started_at: "-",
-            finished_at: "-",
-            leave_count: 0,
+            started_at: session.startedAt,
+            finished_at: session.finishedAt,
+            leave_count: session.leaveCount,
+            last_left_at: session.lastLeftAt,
+            last_returned_at: session.lastReturnedAt,
           });
           setEmailStatus({ sent: true });
           setPhase("results");
@@ -135,11 +138,28 @@ function Index() {
           token: current,
           eventType: document.hidden ? "left_page" : "returned_page",
           elapsedSeconds: elapsedRef.current,
+          questionNo: lastQuestionRef.current,
+        },
+      }).catch(() => undefined);
+    }
+    function handleLeave() {
+      const current = tokenRef.current;
+      if (!current) return;
+      void track({
+        data: {
+          token: current,
+          eventType: "left_page",
+          elapsedSeconds: elapsedRef.current,
+          questionNo: lastQuestionRef.current,
         },
       }).catch(() => undefined);
     }
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pagehide", handleLeave);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pagehide", handleLeave);
+    };
   }, [phase, track]);
 
   const handleRegister = useCallback(
@@ -167,6 +187,7 @@ function Index() {
     (questionNo: number, answer: AnswerValue) => {
       if (answers[questionNo]) return;
       setAnswers((prev) => ({ ...prev, [questionNo]: answer }));
+      lastQuestionRef.current = questionNo;
       const current = tokenRef.current;
       if (!current) return;
       void persistAnswer({
