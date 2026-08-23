@@ -59,7 +59,7 @@ export function TestRunner({
               ⏱ {formatDuration(elapsed)}
             </div>
             <Button
-              disabled={!allAnswered || finishing}
+              disabled={finishing}
               onClick={onFinish}
               size="sm"
               className="bg-brand-gradient text-primary-foreground hover:opacity-90"
