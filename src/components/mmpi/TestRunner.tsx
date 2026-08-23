@@ -140,7 +140,7 @@ export function TestRunner({
           </Button>
         ) : (
           <Button
-            disabled={!allAnswered || finishing}
+            disabled={finishing}
             onClick={onFinish}
             className="bg-brand-gradient text-primary-foreground hover:opacity-90"
           >
