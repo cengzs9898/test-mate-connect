@@ -58,6 +58,14 @@ export function TestRunner({
             <div className="rounded-full border border-border bg-secondary/50 px-4 py-1.5 text-sm font-semibold tabular-nums">
               ⏱ {formatDuration(elapsed)}
             </div>
+            <Button
+              disabled={!allAnswered || finishing}
+              onClick={onFinish}
+              size="sm"
+              className="bg-brand-gradient text-primary-foreground hover:opacity-90"
+            >
+              {finishing ? "Hesaplanıyor..." : "Testi Bitir"}
+            </Button>
           </div>
         </div>
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
