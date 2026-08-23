@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { computeResults, type AnswerMap, type Gender } from "@/lib/mmpi-scoring";
 
 const registrationSchema = z.object({
@@ -98,7 +99,7 @@ export const getSession = createServerFn({ method: "POST" })
       durationSeconds: session.duration_seconds as number,
       lastQuestion: session.last_question as number,
       answers: answerMap,
-      results: session.results as unknown,
+      results: session.results,
     };
   });
 
@@ -185,7 +186,7 @@ export const logEvent = createServerFn({ method: "POST" })
       ip_address: ip,
     });
 
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"test_sessions"> = {};
     if (data.eventType === "left_page") {
       patch["last_left_at"] = new Date().toISOString();
       patch["leave_count"] = (session.leave_count ?? 0) + 1;
@@ -268,7 +269,7 @@ export const finishSession = createServerFn({ method: "POST" })
         finished_at: finishedAt,
         duration_seconds: data.elapsedSeconds,
         answered_count: results.answered,
-        results: results as unknown as Record<string, unknown>,
+        results: results as unknown as Json,
       })
       .eq("id", session.id);
 
