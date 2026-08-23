@@ -96,6 +96,19 @@ export const getSession = createServerFn({ method: "POST" })
         email: session.email,
       },
       status: session.status as string,
+      startedAt: session.started_at
+        ? new Date(session.started_at as string).toLocaleString("tr-TR")
+        : "-",
+      finishedAt: session.finished_at
+        ? new Date(session.finished_at as string).toLocaleString("tr-TR")
+        : "-",
+      leaveCount: (session.leave_count as number) ?? 0,
+      lastLeftAt: session.last_left_at
+        ? new Date(session.last_left_at as string).toLocaleString("tr-TR")
+        : null,
+      lastReturnedAt: session.last_returned_at
+        ? new Date(session.last_returned_at as string).toLocaleString("tr-TR")
+        : null,
       durationSeconds: session.duration_seconds as number,
       lastQuestion: session.last_question as number,
       answers: answerMap,
@@ -290,6 +303,12 @@ export const finishSession = createServerFn({ method: "POST" })
       started_at: new Date(session.started_at as string).toLocaleString("tr-TR"),
       finished_at: new Date(finishedAt).toLocaleString("tr-TR"),
       leave_count: (session.leave_count as number) ?? 0,
+      last_left_at: session.last_left_at
+        ? new Date(session.last_left_at as string).toLocaleString("tr-TR")
+        : null,
+      last_returned_at: session.last_returned_at
+        ? new Date(session.last_returned_at as string).toLocaleString("tr-TR")
+        : null,
     };
 
     let emailStatus: { sent: boolean; error?: string } = { sent: false };

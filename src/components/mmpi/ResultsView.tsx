@@ -14,6 +14,8 @@ export interface ResultParticipant {
   finished_at: string;
   leave_count: number;
   ip_address?: string | null;
+  last_left_at?: string | null;
+  last_returned_at?: string | null;
 }
 
 function levelColor(level: ScaleResult["level"]) {
@@ -93,17 +95,19 @@ export function ResultsView({
 }) {
   const reportRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   async function exportPdf() {
     if (!reportRef.current) return;
     setExporting(true);
+    setPdfError(null);
     try {
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
         import("jspdf"),
-        import("html2canvas"),
+        import("html2canvas-pro"),
       ]);
       const canvas = await html2canvas(reportRef.current, {
-        backgroundColor: "#0e1626",
+        backgroundColor: "#141d2e",
         scale: 2,
         useCORS: true,
       });
@@ -130,6 +134,9 @@ export function ResultsView({
         .replace(/^-|-$/g, "");
       const fileName = `${slug}-${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}-${pad(now.getHours())}.${pad(now.getMinutes())}.pdf`;
       pdf.save(fileName);
+    } catch (err) {
+      console.error("PDF export failed", err);
+      setPdfError(err instanceof Error ? err.message : "PDF oluşturulamadı.");
     } finally {
       setExporting(false);
     }
@@ -150,6 +157,7 @@ export function ResultsView({
             </span>
           )}
         </div>
+        {pdfError ? <p className="w-full text-xs text-destructive">PDF hatası: {pdfError}</p> : null}
         <div className="flex gap-2">
           <Button onClick={exportPdf} disabled={exporting} className="bg-brand-gradient text-primary-foreground hover:opacity-90">
             {exporting ? "PDF hazırlanıyor..." : "PDF olarak kaydet"}
@@ -175,7 +183,9 @@ export function ResultsView({
               ["Bitiş", participant.finished_at],
               ["Süre", formatDuration(participant.duration_seconds)],
               ["Cevaplanan", `${results.answered} / ${results.answered + results.unanswered}`],
-              ["Sayfa terk sayısı", String(participant.leave_count)],
+              ["Sayfa terk sayısı", String(participant.leave_count ?? 0)],
+              ["Son terk saati", participant.last_left_at || "Terk edilmedi"],
+              ["Geri dönüş saati", participant.last_returned_at || "—"],
             ].map(([label, value]) => (
               <div key={label} className="rounded-xl border border-border/70 bg-secondary/30 px-3 py-2">
                 <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</dt>
