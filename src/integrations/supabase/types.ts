@@ -14,16 +14,184 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      session_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          question_no: number | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          question_no?: number | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          question_no?: number | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "test_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_answers: {
+        Row: {
+          answer: string
+          answered_at: string
+          id: string
+          question_no: number
+          session_id: string
+        }
+        Insert: {
+          answer: string
+          answered_at?: string
+          id?: string
+          question_no: number
+          session_id: string
+        }
+        Update: {
+          answer?: string
+          answered_at?: string
+          id?: string
+          question_no?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_answers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "test_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_sessions: {
+        Row: {
+          age: number
+          answered_count: number
+          created_at: string
+          duration_seconds: number
+          email: string
+          email_sent_at: string | null
+          finished_at: string | null
+          full_name: string
+          gender: string
+          id: string
+          ip_address: string | null
+          last_left_at: string | null
+          last_question: number
+          last_returned_at: string | null
+          leave_count: number
+          phone: string
+          results: Json | null
+          session_token: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          age: number
+          answered_count?: number
+          created_at?: string
+          duration_seconds?: number
+          email: string
+          email_sent_at?: string | null
+          finished_at?: string | null
+          full_name: string
+          gender: string
+          id?: string
+          ip_address?: string | null
+          last_left_at?: string | null
+          last_question?: number
+          last_returned_at?: string | null
+          leave_count?: number
+          phone: string
+          results?: Json | null
+          session_token?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          age?: number
+          answered_count?: number
+          created_at?: string
+          duration_seconds?: number
+          email?: string
+          email_sent_at?: string | null
+          finished_at?: string | null
+          full_name?: string
+          gender?: string
+          id?: string
+          ip_address?: string | null
+          last_left_at?: string | null
+          last_question?: number
+          last_returned_at?: string | null
+          leave_count?: number
+          phone?: string
+          results?: Json | null
+          session_token?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +318,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+    },
   },
 } as const
