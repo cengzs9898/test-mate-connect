@@ -40,7 +40,6 @@ export function TestRunner({
   }, [page]);
 
   const pageComplete = items.every((item) => answers[item.no]);
-  const allAnswered = answeredCount === MMPI_QUESTIONS.length;
 
   return (
     <div className="space-y-5" ref={topRef}>
@@ -59,7 +58,7 @@ export function TestRunner({
               ⏱ {formatDuration(elapsed)}
             </div>
             <Button
-              disabled={!allAnswered || finishing}
+              disabled={finishing}
               onClick={onFinish}
               size="sm"
               className="bg-brand-gradient text-primary-foreground hover:opacity-90"
@@ -141,7 +140,7 @@ export function TestRunner({
           </Button>
         ) : (
           <Button
-            disabled={!allAnswered || finishing}
+            disabled={finishing}
             onClick={onFinish}
             className="bg-brand-gradient text-primary-foreground hover:opacity-90"
           >
