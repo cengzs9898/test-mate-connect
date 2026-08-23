@@ -40,7 +40,6 @@ export function TestRunner({
   }, [page]);
 
   const pageComplete = items.every((item) => answers[item.no]);
-  const allAnswered = answeredCount === MMPI_QUESTIONS.length;
 
   return (
     <div className="space-y-5" ref={topRef}>
