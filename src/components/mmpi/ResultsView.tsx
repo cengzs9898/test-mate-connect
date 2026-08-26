@@ -146,19 +146,31 @@ export function ResultsView({
     }
   }
 
+  useEffect(() => {
+    if (!autoExport || autoDone.current) return;
+    autoDone.current = true;
+    const timer = setTimeout(() => { void exportPdf(); }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoExport]);
+
   return (
     <div className="space-y-5">
       <div className="panel-surface flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="text-sm">
-          {emailStatus.sent ? (
-            <span className="text-success">
-              ✓ Rapor {participant.email} adresine ve yönetim adresine gönderildi.
-            </span>
+          {emailStatus ? (
+            emailStatus.sent ? (
+              <span className="text-success">
+                ✓ Rapor {participant.email} adresine ve yönetim adresine gönderildi.
+              </span>
+            ) : (
+              <span className="text-warning">
+                ⚠ Rapor e-postası gönderilemedi{emailStatus.error ? `: ${emailStatus.error}` : ""}. Raporu
+                PDF olarak indirebilirsiniz.
+              </span>
+            )
           ) : (
-            <span className="text-warning">
-              ⚠ Rapor e-postası gönderilemedi{emailStatus.error ? `: ${emailStatus.error}` : ""}. Raporu
-              PDF olarak indirebilirsiniz.
-            </span>
+            <span className="text-muted-foreground">{participant.full_name} — yönetim raporu</span>
           )}
         </div>
         {pdfError ? <p className="w-full text-xs text-destructive">PDF hatası: {pdfError}</p> : null}
@@ -166,11 +178,14 @@ export function ResultsView({
           <Button onClick={exportPdf} disabled={exporting} className="bg-brand-gradient text-primary-foreground hover:opacity-90">
             {exporting ? "PDF hazırlanıyor..." : "PDF olarak kaydet"}
           </Button>
-          <Button variant="secondary" onClick={onRestart}>
-            Yeni test
-          </Button>
+          {onRestart ? (
+            <Button variant="secondary" onClick={onRestart}>
+              Yeni test
+            </Button>
+          ) : null}
         </div>
       </div>
+
 
       <div ref={reportRef} className="space-y-5 rounded-2xl bg-background p-4">
         <BrandHeader subtitle="MMPI Sonuç Raporu" />
