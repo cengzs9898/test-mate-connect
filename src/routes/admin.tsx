@@ -59,7 +59,7 @@ function statusLabel(status: string): string {
 
 function AdminPage() {
   const listSessions = useServerFn(adminSessions);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,6 +70,10 @@ function AdminPage() {
   const [autoExport, setAutoExport] = useState(false);
 
   async function load(user: string, pass: string, auto = false) {
+    if (!user.trim() || !pass) {
+      setError("Kullanıcı adı ve şifre girilmeden giriş yapılamaz.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -78,7 +82,13 @@ function AdminPage() {
       setAuthed(true);
       sessionStorage.setItem(STORE_KEY, JSON.stringify({ user, pass }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Giriş başarısız.");
+      const raw = err instanceof Error ? err.message : "";
+      const looksLikeValidation = raw.includes("too_small") || raw.includes("Required");
+      if (looksLikeValidation) {
+        setError("Kullanıcı adı ve şifre girilmeden giriş yapılamaz.");
+      } else {
+        setError(raw || "Giriş başarısız.");
+      }
       if (!auto) setAuthed(false);
       sessionStorage.removeItem(STORE_KEY);
     } finally {
@@ -91,6 +101,10 @@ function AdminPage() {
     if (!raw) return;
     try {
       const { user, pass } = JSON.parse(raw) as { user: string; pass: string };
+      if (!user.trim() || !pass) {
+        sessionStorage.removeItem(STORE_KEY);
+        return;
+      }
       setUsername(user);
       setPassword(pass);
       void load(user, pass, true);
@@ -128,7 +142,7 @@ function AdminPage() {
           <h1 className="text-xl font-semibold">Yönetici Girişi</h1>
           <div className="space-y-1.5">
             <Label htmlFor="admin-user">Kullanıcı adı</Label>
-            <Input id="admin-user" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+            <Input id="admin-user" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="admin-pass">Şifre</Label>
@@ -138,6 +152,7 @@ function AdminPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              required
             />
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
