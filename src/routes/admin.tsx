@@ -101,6 +101,10 @@ function AdminPage() {
     if (!raw) return;
     try {
       const { user, pass } = JSON.parse(raw) as { user: string; pass: string };
+      if (!user.trim() || !pass) {
+        sessionStorage.removeItem(STORE_KEY);
+        return;
+      }
       setUsername(user);
       setPassword(pass);
       void load(user, pass, true);
