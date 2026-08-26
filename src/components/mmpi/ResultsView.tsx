@@ -87,15 +87,19 @@ export function ResultsView({
   participant,
   emailStatus,
   onRestart,
+  autoExport = false,
 }: {
   results: MmpiResults;
   participant: ResultParticipant;
-  emailStatus: { sent: boolean; error?: string };
-  onRestart: () => void;
+  emailStatus?: { sent: boolean; error?: string };
+  onRestart?: () => void;
+  autoExport?: boolean;
 }) {
   const reportRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const autoDone = useRef(false);
+
 
   async function exportPdf() {
     if (!reportRef.current) return;
