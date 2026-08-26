@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { formatDuration, genderLabel, type MmpiResults, type ScaleResult } from "@/lib/mmpi-scoring";
 import { BrandHeader } from "./BrandHeader";
