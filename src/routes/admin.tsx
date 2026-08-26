@@ -142,7 +142,7 @@ function AdminPage() {
           <h1 className="text-xl font-semibold">Yönetici Girişi</h1>
           <div className="space-y-1.5">
             <Label htmlFor="admin-user">Kullanıcı adı</Label>
-            <Input id="admin-user" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+            <Input id="admin-user" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="admin-pass">Şifre</Label>
@@ -152,6 +152,7 @@ function AdminPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              required
             />
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
