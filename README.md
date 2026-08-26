@@ -27,3 +27,23 @@ npm run dev
 - TypeScript
 - React
 - Tailwind CSS
+
+## Kendi sunucunuzda çalıştırma (self-host)
+
+```bash
+git clone <repo-url> && cd <repo>
+cp .env.example .env   # değerleri doldurun
+npm install
+npm run build
+npm run start          # veya: node .output/server/index.mjs
+```
+
+### E-posta gönderimi
+Sonuç raporları `nodemailer` ile doğrudan SMTP üzerinden gönderilir. `.env` içinde
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`
+tanımlı olduğunda mailler `mmpitesti@pruvapsikoloji.com` adresinden gider ve
+hem katılımcıya hem `ADMIN_EMAIL` adresine ulaşır. SMTP tanımlı değilse uygulama
+Lovable e-posta bağlantısına düşer; kendi sunucunuzda SMTP kullanın.
+
+> Not: Lovable önizlemesi serverless çalıştığı için SMTP portları orada kapalıdır;
+> SMTP yalnızca kendi Node sunucunuzda devreye girer.
