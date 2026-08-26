@@ -59,7 +59,7 @@ function statusLabel(status: string): string {
 
 function AdminPage() {
   const listSessions = useServerFn(adminSessions);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,6 +70,10 @@ function AdminPage() {
   const [autoExport, setAutoExport] = useState(false);
 
   async function load(user: string, pass: string, auto = false) {
+    if (!user.trim() || !pass) {
+      setError("Kullanıcı adı ve şifre girilmeden giriş yapılamaz.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -78,7 +82,13 @@ function AdminPage() {
       setAuthed(true);
       sessionStorage.setItem(STORE_KEY, JSON.stringify({ user, pass }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Giriş başarısız.");
+      const raw = err instanceof Error ? err.message : "";
+      const looksLikeValidation = raw.includes("too_small") || raw.includes("Required");
+      if (looksLikeValidation) {
+        setError("Kullanıcı adı ve şifre girilmeden giriş yapılamaz.");
+      } else {
+        setError(raw || "Giriş başarısız.");
+      }
       if (!auto) setAuthed(false);
       sessionStorage.removeItem(STORE_KEY);
     } finally {
