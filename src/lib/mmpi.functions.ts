@@ -317,7 +317,7 @@ export const finishSession = createServerFn({ method: "POST" })
       const subject = `MMPI Test Sonucu — ${participant.full_name}`;
       await sendResultEmail(participant.email, subject, buildResultEmailHtml(participant, results, false));
       await sendResultEmail(
-        "mmpitesti@pruvapsikoloji.com",
+        process.env["ADMIN_EMAIL"] ?? "mmpitesti@pruvapsikoloji.com",
         `${subject} (yönetim kopyası)`,
         buildResultEmailHtml(participant, results, true),
       );
