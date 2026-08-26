@@ -12,4 +12,10 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Kendi sunucunuzda (Lovable dışında) build alındığında çıktı Node.js sunucusu
+  // olarak üretilir: `.output/server/index.mjs` -> `npm start`.
+  // Lovable önizleme/yayın build'i bu ayarı kendi hedefiyle geçersiz kılar.
+  nitro: {
+    preset: process.env["NITRO_PRESET"] ?? "node-server",
+  },
 });
