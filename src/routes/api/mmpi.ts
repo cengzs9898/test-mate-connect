@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 /**
  * Node / Lovable ortamı için JSON API. cPanel (statik dist) kurulumunda
@@ -159,14 +160,15 @@ async function handle(request: Request): Promise<Response> {
       question_no: body["questionNo"] ? Number(body["questionNo"]) : null,
       ip_address: ip,
     });
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"test_sessions"> = {};
     if (eventType === "left_page") {
       patch["last_left_at"] = new Date().toISOString();
       patch["leave_count"] = (session.leave_count ?? 0) + 1;
     }
     if (eventType === "returned_page") patch["last_returned_at"] = new Date().toISOString();
-    if (body["elapsedSeconds"] !== undefined)
+    if (body["elapsedSeconds"] !== undefined) {
       patch["duration_seconds"] = Number(body["elapsedSeconds"]);
+    }
     if (body["questionNo"] !== undefined) patch["last_question"] = Number(body["questionNo"]);
     if (Object.keys(patch).length > 0) {
       await supabaseAdmin.from("test_sessions").update(patch).eq("id", session.id);
