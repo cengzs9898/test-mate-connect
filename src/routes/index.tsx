@@ -208,17 +208,38 @@ function Index() {
     setBusy(true);
     setError(null);
     try {
-      const output = await finish({ data: { token, elapsedSeconds: elapsed } });
-      setResults(output.results);
-      setParticipant(output.participant);
-      setEmailStatus(output.emailStatus);
+      // Puanlama tarayıcıda hesaplanır; sunucu yalnızca kaydeder ve e-posta gönderir.
+      const computed = computeResults(answers, (profile?.gender ?? "male") as Gender);
+      const { participant: info } = await api.finishSession({
+        token,
+        elapsedSeconds: elapsed,
+        results: computed,
+      });
+      setResults(computed);
+      setParticipant(info);
       setPhase("results");
+
+      const subject = `MMPI Test Sonucu — ${info.full_name}`;
+      try {
+        const status = await api.sendResultEmails({
+          token,
+          subject,
+          participantHtml: buildResultEmailHtml(info, computed, false),
+          adminHtml: buildResultEmailHtml(info, computed, true),
+        });
+        setEmailStatus(status);
+      } catch (mailError) {
+        setEmailStatus({
+          sent: false,
+          error: mailError instanceof Error ? mailError.message : "E-posta gönderilemedi.",
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sonuçlar hesaplanamadı.");
     } finally {
       setBusy(false);
     }
-  }, [elapsed, finish, token]);
+  }, [answers, elapsed, profile, token]);
 
   const handleRestart = useCallback(async () => {
     if (!token) {
@@ -228,7 +249,7 @@ function Index() {
     }
     setBusy(true);
     try {
-      const { token: fresh } = await restart({ data: { token } });
+      const { token: fresh } = await api.restartSession(token);
       window.localStorage.setItem(TOKEN_KEY, fresh);
       setToken(fresh);
       setAnswers({});
@@ -242,7 +263,8 @@ function Index() {
     } finally {
       setBusy(false);
     }
-  }, [restart, token]);
+  }, [token]);
+
 
   const handleResume = useCallback(() => {
     if (token) {
