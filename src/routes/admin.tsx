@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandHeader } from "@/components/mmpi/BrandHeader";
 import { ResultsView, type ResultParticipant } from "@/components/mmpi/ResultsView";
-import { adminSessions } from "@/lib/admin.functions";
+import { api, type AdminSessionRow } from "@/lib/api";
 import { formatDuration, genderLabel, type MmpiResults } from "@/lib/mmpi-scoring";
 
 export const Route = createFileRoute("/admin")({
@@ -58,7 +57,6 @@ function statusLabel(status: string): string {
 }
 
 function AdminPage() {
-  const listSessions = useServerFn(adminSessions);
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -77,7 +75,7 @@ function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await listSessions({ data: { username: user, password: pass } });
+      const res = await api.adminSessions(user, pass);
       setRows(res.sessions as SessionRow[]);
       setAuthed(true);
       sessionStorage.setItem(STORE_KEY, JSON.stringify({ user, pass }));
