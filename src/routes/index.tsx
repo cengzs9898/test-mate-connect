@@ -47,15 +47,9 @@ export const Route = createFileRoute("/")({
 type Phase = "loading" | "register" | "resume" | "test" | "results";
 
 function Index() {
-  const start = useServerFn(startSession);
-  const load = useServerFn(getSession);
-  const persistAnswer = useServerFn(saveAnswer);
-  const track = useServerFn(logEvent);
-  const restart = useServerFn(restartSession);
-  const finish = useServerFn(finishSession);
-
   const [phase, setPhase] = useState<Phase>("loading");
   const [token, setToken] = useState<string | null>(null);
+  const [profile, setProfile] = useState<SessionParticipant | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [elapsed, setElapsed] = useState(0);
   const [startPage, setStartPage] = useState(1);
@@ -82,18 +76,19 @@ function Index() {
     }
     void (async () => {
       try {
-        const session = await load({ data: { token: saved } });
+        const session = await api.getSession(saved);
         if (!session) {
           window.localStorage.removeItem(TOKEN_KEY);
           setPhase("register");
           return;
         }
         setToken(session.token);
+        setProfile(session.participant);
         setAnswers(session.answers);
         setElapsed(session.durationSeconds ?? 0);
         setStartPage(Math.max(1, Math.ceil((session.lastQuestion || 1) / PAGE_SIZE)));
         if (session.status === "completed" && session.results) {
-          setResults(session.results as unknown as MmpiResults);
+          setResults(session.results);
           setParticipant({
             ...session.participant,
             duration_seconds: session.durationSeconds ?? 0,
@@ -118,7 +113,8 @@ function Index() {
         setPhase("register");
       }
     })();
-  }, [load]);
+  }, []);
+
 
   // Sayaç
   useEffect(() => {
