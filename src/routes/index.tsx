@@ -246,12 +246,13 @@ function Index() {
 
   const handleResume = useCallback(() => {
     if (token) {
-      void track({ data: { token, eventType: "test_resumed", elapsedSeconds: elapsed } }).catch(
-        () => undefined,
-      );
+      void api
+        .logEvent({ token, eventType: "test_resumed", elapsedSeconds: elapsed })
+        .catch(() => undefined);
     }
     setPhase("test");
-  }, [elapsed, token, track]);
+  }, [elapsed, token]);
+
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-4 py-8">
