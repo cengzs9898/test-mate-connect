@@ -1,8 +1,7 @@
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 
 const target = process.argv[2];
-const isWindows = process.platform === "win32";
-const executable = isWindows ? "npx.cmd" : "npx";
 const env = { ...process.env };
 
 if (target === "static") {
@@ -14,10 +13,14 @@ if (target === "static") {
   process.exit(1);
 }
 
-const build = spawnSync(`"${executable}" vite build`, {
+// Vite'ı npx/npm aracılığıyla çağırmak bazı Windows npm kurulumlarında
+// node_modules/npm/bin dosyalarının aranmasına neden oluyor. Kurulu Vite CLI'ını
+// mevcut Node çalıştırıcısıyla doğrudan başlatmak tüm platformlarda daha güvenli.
+const viteCli = path.resolve("node_modules", "vite", "bin", "vite.js");
+const build = spawnSync(process.execPath, [viteCli, "build"], {
   env,
   stdio: "inherit",
-  shell: true,
+  shell: false,
 });
 
 if (build.error) {
