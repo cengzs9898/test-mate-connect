@@ -21,7 +21,7 @@ export default defineConfig({
   // Kendi sunucunuzda (Lovable dışında) build alındığında çıktı Node.js sunucusu
   // olarak üretilir: `.output/server/index.mjs` -> `npm start`.
   // Lovable önizleme/yayın build'i bu ayarı kendi hedefiyle geçersiz kılar.
-  nitro: {
-    preset: process.env["NITRO_PRESET"] ?? (isStatic ? "static" : "node-server"),
-  },
+  ...(isStatic
+    ? { nitro: false as const }
+    : { nitro: { preset: process.env["NITRO_PRESET"] ?? "node-server" } }),
 });
