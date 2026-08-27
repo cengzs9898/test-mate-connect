@@ -23,26 +23,8 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type SessionRow = {
-  id: string;
-  full_name: string;
-  age: number;
-  gender: string;
-  phone: string;
-  email: string;
-  ip_address: string | null;
-  status: string;
-  started_at: string;
-  finished_at: string | null;
-  duration_seconds: number | null;
-  answered_count: number | null;
-  last_question: number | null;
-  leave_count: number | null;
-  last_left_at: string | null;
-  last_returned_at: string | null;
-  email_sent_at: string | null;
-  results: unknown;
-};
+type SessionRow = AdminSessionRow;
+
 
 const STORE_KEY = "pruva-admin-cred";
 
