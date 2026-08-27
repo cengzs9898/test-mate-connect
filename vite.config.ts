@@ -13,9 +13,10 @@ export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
-    server: { entry: "server" },
     // Statik build'de SSR kapatılır, tek index.html üretilir (SPA).
-    ...(isStatic ? { spa: { enabled: true, prerender: { crawlLinks: false } } } : {}),
+    ...(isStatic
+      ? { spa: { enabled: true, prerender: { crawlLinks: false } } }
+      : { server: { entry: "server" } }),
   },
   // Kendi sunucunuzda (Lovable dışında) build alındığında çıktı Node.js sunucusu
   // olarak üretilir: `.output/server/index.mjs` -> `npm start`.
