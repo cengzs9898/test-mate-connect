@@ -6,13 +6,13 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:node": "cross-env NITRO_PRESET=node-server vite build",
+    "build:node": "node scripts/build-with-env.mjs node",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "build:static": "cross-env STATIC_BUILD=1 vite build && node scripts/finalize-static.mjs"
+    "build:static": "node scripts/build-with-env.mjs static"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -84,7 +84,6 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "cross-env": "^10.1.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
