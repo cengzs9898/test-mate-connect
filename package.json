@@ -12,7 +12,7 @@
     "start": "node .output/server/index.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "build:static": "STATIC_BUILD=1 vite build"
+    "build:static": "STATIC_BUILD=1 vite build && node scripts/finalize-static.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
