@@ -1,25 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { BrandHeader } from "@/components/mmpi/BrandHeader";
 import { RegistrationForm, type RegistrationValues } from "@/components/mmpi/RegistrationForm";
 import { TestRunner, PAGE_SIZE } from "@/components/mmpi/TestRunner";
 import { ResultsView, type ResultParticipant } from "@/components/mmpi/ResultsView";
+import { api, type SessionParticipant } from "@/lib/api";
+import { buildResultEmailHtml } from "@/lib/mmpi-email";
 import {
-  finishSession,
-  getSession,
-  logEvent,
-  restartSession,
-  saveAnswer,
-  startSession,
-} from "@/lib/mmpi.functions";
-import {
+  computeResults,
   formatDuration,
   type AnswerMap,
   type AnswerValue,
+  type Gender,
   type MmpiResults,
 } from "@/lib/mmpi-scoring";
+
 
 const TOKEN_KEY = "mmpi_session_token";
 
@@ -47,15 +43,9 @@ export const Route = createFileRoute("/")({
 type Phase = "loading" | "register" | "resume" | "test" | "results";
 
 function Index() {
-  const start = useServerFn(startSession);
-  const load = useServerFn(getSession);
-  const persistAnswer = useServerFn(saveAnswer);
-  const track = useServerFn(logEvent);
-  const restart = useServerFn(restartSession);
-  const finish = useServerFn(finishSession);
-
   const [phase, setPhase] = useState<Phase>("loading");
   const [token, setToken] = useState<string | null>(null);
+  const [profile, setProfile] = useState<SessionParticipant | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [elapsed, setElapsed] = useState(0);
   const [startPage, setStartPage] = useState(1);
@@ -82,18 +72,19 @@ function Index() {
     }
     void (async () => {
       try {
-        const session = await load({ data: { token: saved } });
+        const session = await api.getSession(saved);
         if (!session) {
           window.localStorage.removeItem(TOKEN_KEY);
           setPhase("register");
           return;
         }
         setToken(session.token);
+        setProfile(session.participant);
         setAnswers(session.answers);
         setElapsed(session.durationSeconds ?? 0);
         setStartPage(Math.max(1, Math.ceil((session.lastQuestion || 1) / PAGE_SIZE)));
         if (session.status === "completed" && session.results) {
-          setResults(session.results as unknown as MmpiResults);
+          setResults(session.results);
           setParticipant({
             ...session.participant,
             duration_seconds: session.durationSeconds ?? 0,
@@ -118,7 +109,8 @@ function Index() {
         setPhase("register");
       }
     })();
-  }, [load]);
+  }, []);
+
 
   // Sayaç
   useEffect(() => {
@@ -130,29 +122,23 @@ function Index() {
   // Sayfa terk / dönüş takibi
   useEffect(() => {
     if (phase !== "test") return;
-    function handleVisibility() {
+    function report(eventType: "left_page" | "returned_page") {
       const current = tokenRef.current;
       if (!current) return;
-      void track({
-        data: {
+      void api
+        .logEvent({
           token: current,
-          eventType: document.hidden ? "left_page" : "returned_page",
+          eventType,
           elapsedSeconds: elapsedRef.current,
           questionNo: lastQuestionRef.current,
-        },
-      }).catch(() => undefined);
+        })
+        .catch(() => undefined);
+    }
+    function handleVisibility() {
+      report(document.hidden ? "left_page" : "returned_page");
     }
     function handleLeave() {
-      const current = tokenRef.current;
-      if (!current) return;
-      void track({
-        data: {
-          token: current,
-          eventType: "left_page",
-          elapsedSeconds: elapsedRef.current,
-          questionNo: lastQuestionRef.current,
-        },
-      }).catch(() => undefined);
+      report("left_page");
     }
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("pagehide", handleLeave);
@@ -160,28 +146,32 @@ function Index() {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("pagehide", handleLeave);
     };
-  }, [phase, track]);
+  }, [phase]);
 
-  const handleRegister = useCallback(
-    async (values: RegistrationValues) => {
-      setBusy(true);
-      setError(null);
-      try {
-        const { token: fresh } = await start({ data: values });
-        window.localStorage.setItem(TOKEN_KEY, fresh);
-        setToken(fresh);
-        setAnswers({});
-        setElapsed(0);
-        setStartPage(1);
-        setPhase("test");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Test başlatılamadı, tekrar deneyin.");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [start],
-  );
+  const handleRegister = useCallback(async (values: RegistrationValues) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { token: fresh } = await api.startSession(values);
+      window.localStorage.setItem(TOKEN_KEY, fresh);
+      setToken(fresh);
+      setProfile({
+        full_name: values.fullName,
+        age: values.age,
+        gender: values.gender as Gender,
+        phone: values.phone,
+        email: values.email,
+      });
+      setAnswers({});
+      setElapsed(0);
+      setStartPage(1);
+      setPhase("test");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Test başlatılamadı, tekrar deneyin.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
 
   const handleAnswer = useCallback(
     (questionNo: number, answer: AnswerValue) => {
@@ -190,35 +180,57 @@ function Index() {
       lastQuestionRef.current = questionNo;
       const current = tokenRef.current;
       if (!current) return;
-      void persistAnswer({
-        data: {
+      void api
+        .saveAnswer({
           token: current,
           questionNo,
           answer,
           elapsedSeconds: elapsedRef.current,
           lastQuestion: questionNo,
-        },
-      }).catch(() => undefined);
+        })
+        .catch(() => undefined);
     },
-    [answers, persistAnswer],
+    [answers],
   );
+
 
   const handleFinish = useCallback(async () => {
     if (!token) return;
     setBusy(true);
     setError(null);
     try {
-      const output = await finish({ data: { token, elapsedSeconds: elapsed } });
-      setResults(output.results);
-      setParticipant(output.participant);
-      setEmailStatus(output.emailStatus);
+      // Puanlama tarayıcıda hesaplanır; sunucu yalnızca kaydeder ve e-posta gönderir.
+      const computed = computeResults(answers, (profile?.gender ?? "male") as Gender);
+      const { participant: info } = await api.finishSession({
+        token,
+        elapsedSeconds: elapsed,
+        results: computed,
+      });
+      setResults(computed);
+      setParticipant(info);
       setPhase("results");
+
+      const subject = `MMPI Test Sonucu — ${info.full_name}`;
+      try {
+        const status = await api.sendResultEmails({
+          token,
+          subject,
+          participantHtml: buildResultEmailHtml(info, computed, false),
+          adminHtml: buildResultEmailHtml(info, computed, true),
+        });
+        setEmailStatus(status);
+      } catch (mailError) {
+        setEmailStatus({
+          sent: false,
+          error: mailError instanceof Error ? mailError.message : "E-posta gönderilemedi.",
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sonuçlar hesaplanamadı.");
     } finally {
       setBusy(false);
     }
-  }, [elapsed, finish, token]);
+  }, [answers, elapsed, profile, token]);
 
   const handleRestart = useCallback(async () => {
     if (!token) {
@@ -228,7 +240,7 @@ function Index() {
     }
     setBusy(true);
     try {
-      const { token: fresh } = await restart({ data: { token } });
+      const { token: fresh } = await api.restartSession(token);
       window.localStorage.setItem(TOKEN_KEY, fresh);
       setToken(fresh);
       setAnswers({});
@@ -242,16 +254,18 @@ function Index() {
     } finally {
       setBusy(false);
     }
-  }, [restart, token]);
+  }, [token]);
+
 
   const handleResume = useCallback(() => {
     if (token) {
-      void track({ data: { token, eventType: "test_resumed", elapsedSeconds: elapsed } }).catch(
-        () => undefined,
-      );
+      void api
+        .logEvent({ token, eventType: "test_resumed", elapsedSeconds: elapsed })
+        .catch(() => undefined);
     }
     setPhase("test");
-  }, [elapsed, token, track]);
+  }, [elapsed, token]);
+
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-4 py-8">

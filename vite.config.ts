@@ -6,16 +6,22 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// STATIC_BUILD=1 -> tamamen statik çıktı (cPanel + PHP API kurulumu için).
+const isStatic = process.env["STATIC_BUILD"] === "1";
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
-    server: { entry: "server" },
+    // Statik build'de SSR kapatılır, tek index.html üretilir (SPA).
+    ...(isStatic
+      ? { spa: { enabled: true, prerender: { crawlLinks: false } } }
+      : { server: { entry: "server" } }),
   },
   // Kendi sunucunuzda (Lovable dışında) build alındığında çıktı Node.js sunucusu
   // olarak üretilir: `.output/server/index.mjs` -> `npm start`.
   // Lovable önizleme/yayın build'i bu ayarı kendi hedefiyle geçersiz kılar.
-  nitro: {
-    preset: process.env["NITRO_PRESET"] ?? "node-server",
-  },
+  ...(isStatic
+    ? { nitro: false as const }
+    : { nitro: { preset: process.env["NITRO_PRESET"] ?? "node-server" } }),
 });

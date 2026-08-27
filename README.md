@@ -28,68 +28,86 @@ npm run dev
 - React
 - Tailwind CSS
 
-## Kendi Node.js sunucunuzda çalıştırma (self-host)
+## cPanel kurulumu (Node.js YOK — statik dist + PHP)
 
-Bu proje SSR + sunucu fonksiyonları kullandığı için "statik dist" olarak değil,
-**Node.js sunucu çıktısı** olarak derlenir. Build sonunda `.output/` klasörü oluşur
-ve tek komutla ayağa kalkar:
+Sunucunuzda Node.js olmadığı için sistem **statik dosyalar + küçük bir PHP API**
+olarak çalışacak şekilde hazırlandı. Puanlama tarayıcıda hesaplanır; kayıtlar
+cPanel MySQL'e yazılır; sonuç e-postaları PHP üzerinden SMTP ile gönderilir.
+
+### 1) Build alın (kendi bilgisayarınızda)
 
 ```bash
-git clone <repo-url> && cd <repo>
-cp .env.example .env      # değerleri doldurun (Supabase + SMTP + admin)
 npm install
-npm run build             # Lovable dışında otomatik Node çıktısı üretir
-npm run start             # = node .output/server/index.mjs  (varsayılan port 3000)
+npm run build:static
 ```
 
-Port değiştirmek için: `PORT=8080 npm run start`
-
-Çıktı klasörü:
+Çıktı: **`dist/client/`** klasörü. İçinde şunlar hazır gelir:
 
 ```
-.output/
-├── server/index.mjs   → Node.js sunucu girişi (npm start bunu çalıştırır)
-├── server/...          → SSR + server function kodu
-├── public/             → statik dosyalar (css, js, görseller)
-└── nitro.json
+dist/client/
+├── index.html          → uygulama girişi
+├── assets/             → js + css
+├── .htaccess           → /admin yönlendirmesi + /api/mmpi -> api/mmpi.php
+└── api/
+    ├── mmpi.php        → tüm API (kayıt, cevap, terk takibi, sonuç, admin)
+    ├── smtp.php        → bağımlılıksız SMTP gönderici
+    └── config.php      → AYARLAR (düzenlenmeli)
 ```
 
-Sunucuya sadece derlenmiş halini atmak isterseniz `.output/` klasörünü ve
-`.env` dosyasını kopyalayıp `node .output/server/index.mjs` çalıştırmanız yeterlidir
-(o makinede `npm install` gerekmez, bağımlılıklar bundle edilmiştir).
+### 2) Yükleyin
 
-### PM2 ile sürekli çalıştırma
+`dist/client/` klasörünün **içeriğini** `public_html/` (veya alt alan adı
+klasörünüz) içine kopyalayın. `npm install` gerekmez, Node.js gerekmez.
+
+### 3) Veritabanı
+
+cPanel > **MySQL Veritabanları**: bir veritabanı + kullanıcı oluşturup tüm
+yetkileri verin. Tablolar (test_sessions, test_answers, session_events) ilk
+istekte otomatik oluşturulur — SQL çalıştırmanız gerekmez.
+
+### 4) `api/config.php` dosyasını düzenleyin
+
+```php
+'db_host' => 'localhost',
+'db_name' => 'kullanici_mmpi',
+'db_user' => 'kullanici_mmpi',
+'db_pass' => '********',
+
+'smtp_host' => 'srvc67.trwww.com',
+'smtp_port' => 465,
+'smtp_secure' => 'ssl',
+'smtp_user' => 'mmpitesti@pruvapsikoloji.com',
+'smtp_pass' => '@pruvapsikoloji.com',
+'mail_from' => 'mmpitesti@pruvapsikoloji.com',
+'admin_email' => 'mmpitesti@pruvapsikoloji.com',
+
+'admin_user' => 'admin',
+'admin_pass' => '@pruvapsikoloji.com',
+```
+
+Sonuç e-postası hem katılımcıya hem `admin_email` adresine gider.
+Yönetim paneli: `https://alanadiniz.com/admin`
+
+### Gereksinimler
+
+- PHP 7.4+ (PDO MySQL + openssl açık — cPanel'de varsayılan)
+- Apache `mod_rewrite` (cPanel'de varsayılan açık)
+- SMTP 465 portu giden bağlantılara açık olmalı (aynı sunucudaki hesap için sorun olmaz)
+
+### Sorun giderme
+
+- **Boş sayfa / 404 (örn. /admin):** `.htaccess` yüklenmemiş olabilir; gizli
+  dosyaları göstererek kontrol edin.
+- **"Veritabanına bağlanılamadı":** `config.php` içindeki MySQL bilgileri.
+- **E-posta gitmiyor:** Sonuç ekranında SMTP hata mesajı gösterilir; port/şifreyi
+  kontrol edin. Alternatif olarak `smtp_port => 587`, `smtp_secure => 'tls'`.
+
+## Node.js sunucusunda çalıştırma (alternatif)
+
+Node.js'li bir sunucu kullanırsanız SSR sürümü de derlenebilir:
 
 ```bash
-npm install -g pm2
-pm2 start .output/server/index.mjs --name mmpi --env production
-pm2 save && pm2 startup
+npm run build      # .output/ üretir
+npm run start      # node .output/server/index.mjs (port 3000)
 ```
 
-### Nginx reverse proxy (örnek)
-
-```nginx
-server {
-  server_name mmpitesti.com;
-  location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Real-IP $remote_addr;
-  }
-}
-```
-
-> Not: Hedefi elle sabitlemek isterseniz `npm run build:node`
-> (`NITRO_PRESET=node-server`) komutunu kullanın. Vercel/Netlify gibi bir platforma
-> deploy ederken `NITRO_PRESET` değerini o platforma göre verin.
-
-### E-posta gönderimi
-Sonuç raporları `nodemailer` ile doğrudan SMTP üzerinden gönderilir. `.env` içinde
-`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`
-tanımlı olduğunda mailler `mmpitesti@pruvapsikoloji.com` adresinden gider ve
-hem katılımcıya hem `ADMIN_EMAIL` adresine ulaşır. SMTP tanımlı değilse uygulama
-Lovable e-posta bağlantısına düşer; kendi sunucunuzda SMTP kullanın.
-
-> Not: Lovable önizlemesi serverless çalıştığı için SMTP portları orada kapalıdır;
-> SMTP yalnızca kendi Node sunucunuzda devreye girer.

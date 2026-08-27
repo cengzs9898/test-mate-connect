@@ -1,0 +1,26 @@
+# cPanel / Apache yapılandırması (statik dist kurulumu)
+# Bu dosya build çıktısının kök dizinine kopyalanır.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # /api/mmpi -> api/mmpi.php
+  RewriteRule ^api/mmpi/?$ api/mmpi.php [L]
+
+  # Var olan dosya/dizin isteklerine dokunma
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Diğer tüm yollar (örn. /admin) SPA'ya
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Ayar ve yardımcı PHP dosyaları doğrudan açılamaz
+<FilesMatch "^(config|smtp)\.php$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

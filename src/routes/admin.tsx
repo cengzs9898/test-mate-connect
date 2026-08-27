@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandHeader } from "@/components/mmpi/BrandHeader";
 import { ResultsView, type ResultParticipant } from "@/components/mmpi/ResultsView";
-import { adminSessions } from "@/lib/admin.functions";
+import { api, type AdminSessionRow } from "@/lib/api";
 import { formatDuration, genderLabel, type MmpiResults } from "@/lib/mmpi-scoring";
 
 export const Route = createFileRoute("/admin")({
@@ -24,26 +23,8 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type SessionRow = {
-  id: string;
-  full_name: string;
-  age: number;
-  gender: string;
-  phone: string;
-  email: string;
-  ip_address: string | null;
-  status: string;
-  started_at: string;
-  finished_at: string | null;
-  duration_seconds: number | null;
-  answered_count: number | null;
-  last_question: number | null;
-  leave_count: number | null;
-  last_left_at: string | null;
-  last_returned_at: string | null;
-  email_sent_at: string | null;
-  results: unknown;
-};
+type SessionRow = AdminSessionRow;
+
 
 const STORE_KEY = "pruva-admin-cred";
 
@@ -58,7 +39,6 @@ function statusLabel(status: string): string {
 }
 
 function AdminPage() {
-  const listSessions = useServerFn(adminSessions);
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -77,7 +57,7 @@ function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await listSessions({ data: { username: user, password: pass } });
+      const res = await api.adminSessions(user, pass);
       setRows(res.sessions as SessionRow[]);
       setAuthed(true);
       sessionStorage.setItem(STORE_KEY, JSON.stringify({ user, pass }));
