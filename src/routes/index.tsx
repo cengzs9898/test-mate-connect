@@ -130,29 +130,23 @@ function Index() {
   // Sayfa terk / dönüş takibi
   useEffect(() => {
     if (phase !== "test") return;
-    function handleVisibility() {
+    function report(eventType: "left_page" | "returned_page") {
       const current = tokenRef.current;
       if (!current) return;
-      void track({
-        data: {
+      void api
+        .logEvent({
           token: current,
-          eventType: document.hidden ? "left_page" : "returned_page",
+          eventType,
           elapsedSeconds: elapsedRef.current,
           questionNo: lastQuestionRef.current,
-        },
-      }).catch(() => undefined);
+        })
+        .catch(() => undefined);
+    }
+    function handleVisibility() {
+      report(document.hidden ? "left_page" : "returned_page");
     }
     function handleLeave() {
-      const current = tokenRef.current;
-      if (!current) return;
-      void track({
-        data: {
-          token: current,
-          eventType: "left_page",
-          elapsedSeconds: elapsedRef.current,
-          questionNo: lastQuestionRef.current,
-        },
-      }).catch(() => undefined);
+      report("left_page");
     }
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("pagehide", handleLeave);
@@ -160,28 +154,32 @@ function Index() {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("pagehide", handleLeave);
     };
-  }, [phase, track]);
+  }, [phase]);
 
-  const handleRegister = useCallback(
-    async (values: RegistrationValues) => {
-      setBusy(true);
-      setError(null);
-      try {
-        const { token: fresh } = await start({ data: values });
-        window.localStorage.setItem(TOKEN_KEY, fresh);
-        setToken(fresh);
-        setAnswers({});
-        setElapsed(0);
-        setStartPage(1);
-        setPhase("test");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Test başlatılamadı, tekrar deneyin.");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [start],
-  );
+  const handleRegister = useCallback(async (values: RegistrationValues) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { token: fresh } = await api.startSession(values);
+      window.localStorage.setItem(TOKEN_KEY, fresh);
+      setToken(fresh);
+      setProfile({
+        full_name: values.fullName,
+        age: values.age,
+        gender: values.gender as Gender,
+        phone: values.phone,
+        email: values.email,
+      });
+      setAnswers({});
+      setElapsed(0);
+      setStartPage(1);
+      setPhase("test");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Test başlatılamadı, tekrar deneyin.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
 
   const handleAnswer = useCallback(
     (questionNo: number, answer: AnswerValue) => {
@@ -190,18 +188,19 @@ function Index() {
       lastQuestionRef.current = questionNo;
       const current = tokenRef.current;
       if (!current) return;
-      void persistAnswer({
-        data: {
+      void api
+        .saveAnswer({
           token: current,
           questionNo,
           answer,
           elapsedSeconds: elapsedRef.current,
           lastQuestion: questionNo,
-        },
-      }).catch(() => undefined);
+        })
+        .catch(() => undefined);
     },
-    [answers, persistAnswer],
+    [answers],
   );
+
 
   const handleFinish = useCallback(async () => {
     if (!token) return;
