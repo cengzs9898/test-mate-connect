@@ -14,10 +14,10 @@ if (target === "static") {
   process.exit(1);
 }
 
-const build = spawnSync(executable, ["vite", "build"], {
+const build = spawnSync(`"${executable}" vite build`, {
   env,
   stdio: "inherit",
-  shell: false,
+  shell: true,
 });
 
 if (build.error) {
