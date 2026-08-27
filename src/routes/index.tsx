@@ -1,25 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { BrandHeader } from "@/components/mmpi/BrandHeader";
 import { RegistrationForm, type RegistrationValues } from "@/components/mmpi/RegistrationForm";
 import { TestRunner, PAGE_SIZE } from "@/components/mmpi/TestRunner";
 import { ResultsView, type ResultParticipant } from "@/components/mmpi/ResultsView";
+import { api, type SessionParticipant } from "@/lib/api";
+import { buildResultEmailHtml } from "@/lib/mmpi-email";
 import {
-  finishSession,
-  getSession,
-  logEvent,
-  restartSession,
-  saveAnswer,
-  startSession,
-} from "@/lib/mmpi.functions";
-import {
+  computeResults,
   formatDuration,
   type AnswerMap,
   type AnswerValue,
+  type Gender,
   type MmpiResults,
 } from "@/lib/mmpi-scoring";
+
 
 const TOKEN_KEY = "mmpi_session_token";
 
